@@ -16,11 +16,11 @@ USE_CUDA = torch.cuda.is_available()
 def train(config):
     
     train_data, word2index, tag2index, intent2index = preprocessing(config.file_path,config.max_length)
-    
-    if train_data==None:
+
+    if train_data is None:
         print("Please check your data or its path")
         return
-    
+
     encoder = Encoder(len(word2index),config.embedding_size,config.hidden_size)
     decoder = Decoder(len(tag2index),len(intent2index),len(tag2index)//3,config.hidden_size*2)
     if USE_CUDA:
@@ -34,7 +34,7 @@ def train(config):
     loss_function_2 = nn.CrossEntropyLoss()
     enc_optim= optim.Adam(encoder.parameters(), lr=config.learning_rate)
     dec_optim = optim.Adam(decoder.parameters(),lr=config.learning_rate)
-    
+
     for step in range(config.step_size):
         losses=[]
         for i, batch in enumerate(getBatch(config.batch_size,train_data)):
@@ -69,10 +69,10 @@ def train(config):
             if i % 100==0:
                 print("Step",step," epoch",i," : ",np.mean(losses))
                 losses=[]
-    
+
     if not os.path.exists(config.model_dir):
         os.makedirs(config.model_dir)
-    
+
     torch.save(decoder.state_dict(),os.path.join(config.model_dir,'jointnlu-decoder.pkl'))
     torch.save(encoder.state_dict(),os.path.join(config.model_dir, 'jointnlu-encoder.pkl'))
     print("Train Complete!")

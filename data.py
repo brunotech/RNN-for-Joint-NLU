@@ -10,8 +10,11 @@ USE_CUDA = torch.cuda.is_available()
 
 def prepare_sequence(seq, to_ix):
     idxs = list(map(lambda w: to_ix[w] if w in to_ix.keys() else to_ix["<UNK>"], seq))
-    tensor = Variable(torch.LongTensor(idxs)).cuda() if USE_CUDA else Variable(torch.LongTensor(idxs))
-    return tensor
+    return (
+        Variable(torch.LongTensor(idxs)).cuda()
+        if USE_CUDA
+        else Variable(torch.LongTensor(idxs))
+    )
 
 
 flatten = lambda l: [item for sublist in l for item in sublist]
@@ -23,22 +26,22 @@ def preprocessing(file_path,length):
     """
     
     processed_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),"data/")
-    print("processed_data_path : %s" % processed_path)
+    print(f"processed_data_path : {processed_path}")
 
     if os.path.exists(os.path.join(processed_path,"processed_train_data.pkl")):
         train_data, word2index, tag2index, intent2index = pickle.load(open(os.path.join(processed_path,"processed_train_data.pkl"),"rb"))
         return train_data, word2index, tag2index, intent2index
-                                  
+
     if not os.path.exists(processed_path):
         os.makedirs(processed_path)
-    
+
     try:
         train = open(file_path,"r").readlines()
         print("Successfully load data. # of set : %d " % len(train))
     except:
         print("No such file!")
         return None,None,None,None
-    
+
     try:
         train = [t[:-1] for t in train]
         train = [[t.split("\t")[0].split(" "),t.split("\t")[1].split(" ")[:-1],t.split("\t")[1].split(" ")[-1]] for t in train]
@@ -53,10 +56,10 @@ def preprocessing(file_path,length):
         print("Please, check data format! It should be 'raw sentence \t BIO tag sequence intent'. The following is a sample.")
         print("BOS i want to fly from baltimore to dallas round trip EOS\tO O O O O O B-fromloc.city_name O B-toloc.city_name B-round_trip I-round_trip atis_flight")
         return None,None,None,None
-    
+
     sin=[]
     sout=[]
-    
+
     for i in range(len(seq_in)):
         temp = seq_in[i]
         if len(temp)<length:
@@ -76,7 +79,7 @@ def preprocessing(file_path,length):
             temp = temp[:length]
             temp[-1]='<EOS>'
         sout.append(temp)
-              
+
     word2index = {'<PAD>': 0, '<UNK>':1,'<SOS>':2,'<EOS>':3}
     for token in vocab:
         if token not in word2index.keys():
@@ -92,9 +95,9 @@ def preprocessing(file_path,length):
         if ii not in intent2index.keys():
             intent2index[ii] = len(intent2index)
 
-              
+
     train = list(zip(sin,sout,intent))
-              
+
     train_data=[]
 
     for tr in train:
@@ -108,11 +111,11 @@ def preprocessing(file_path,length):
         temp3 = Variable(torch.LongTensor([intent2index[tr[2]]])).cuda() if USE_CUDA else Variable(torch.LongTensor([intent2index[tr[2]]]))
 
         train_data.append((temp,temp2,temp3))
-    
+
     pickle.dump((train_data,word2index,tag2index,intent2index),open(os.path.join(processed_path,"processed_train_data.pkl"),"wb"))
     pickle
     print("Preprocessing complete!")
-              
+
     return train_data, word2index, tag2index, intent2index
               
               

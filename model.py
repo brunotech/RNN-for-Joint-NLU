@@ -85,19 +85,17 @@ class Decoder(nn.Module):
         """
         
         hidden = hidden.squeeze(0).unsqueeze(2)  # 히든 : (1,배치,차원) -> (배치,차원,1)
-        
+
         batch_size = encoder_outputs.size(0) # B
         max_len = encoder_outputs.size(1) # T
         energies = self.attn(encoder_outputs.contiguous().view(batch_size*max_len,-1)) # B*T,D -> B*T,D
         energies = energies.view(batch_size,max_len,-1) # B,T,D (배치,타임,차원)
         attn_energies = energies.bmm(hidden).transpose(1,2) # B,T,D * B,D,1 --> B,1,T
         attn_energies = attn_energies.squeeze(1).masked_fill(encoder_maskings,-1e12) # PAD masking
-        
+
         alpha = F.softmax(attn_energies) # B,T
         alpha = alpha.unsqueeze(1) # B,1,T
-        context = alpha.bmm(encoder_outputs) # B,1,T * B,T,D => B,1,D
-        
-        return context # B,1,D
+        return alpha.bmm(encoder_outputs)
     
     def init_hidden(self,input):
         hidden = Variable(torch.zeros(self.n_layers*1, input.size(0), self.hidden_size)).cuda() if USE_CUDA else Variable(torch.zeros(self.n_layers*2,input.size(0), self.hidden_size))
